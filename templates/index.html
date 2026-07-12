@@ -25,6 +25,13 @@
 
     <button type="submit">Book</button>
 </form>
+<h2>Add Employee</h2>
+
+<form action="/add_employee" method="post">
+    <input type="text" name="name" placeholder="Employee Name" required>
+    <input type="email" name="email" placeholder="Employee Email" required>
+    <button type="submit">Add Employee</button>
+</form>
 
     <h2>Assets</h2>
 
@@ -47,5 +54,37 @@
         </tr>
         {% endfor %}
     </table>
+    <h2>Bookings</h2>
+
+<table border="1" cellpadding="5">
+    <tr>
+        <th>Resource</th>
+        <th>Start</th>
+        <th>End</th>
+    </tr>
+
+    {% for booking in bookings %}
+    <tr>
+        <td>{{ booking[0] }}</td>
+        <td>{{ booking[1] }}</td>
+        <td>{{ booking[2] }}</td>
+    </tr>
+    {% endfor %}
+</table>
+<h2>Employees</h2>
+
+<table border="1" cellpadding="5">
+    <tr>
+        <th>Name</th>
+        <th>Email</th>
+    </tr>
+
+    {% for employee in employees %}
+    <tr>
+        <td>{{ employee[0] }}</td>
+        <td>{{ employee[1] }}</td>
+    </tr>
+    {% endfor %}
+</table>
 </body>
 </html>

@@ -8,12 +8,32 @@ def init_db():
     conn = sqlite3.connect("assetflow.db")
     cur = conn.cursor()
 
+    # Assets table
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS assets (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        tag TEXT UNIQUE,
+        name TEXT,
+        status TEXT
+    )
+    """)
+
+    # Bookings table
     cur.execute("""
     CREATE TABLE IF NOT EXISTS bookings (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         resource_tag TEXT,
         start_time TEXT,
         end_time TEXT
+    )
+    """)
+
+    # Employees table
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS employees (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT,
+        email TEXT UNIQUE
     )
     """)
 
@@ -26,12 +46,26 @@ def home():
     conn = sqlite3.connect("assetflow.db")
     cur = conn.cursor()
 
+    # Get assets
     cur.execute("SELECT tag, name, status FROM assets")
     assets = cur.fetchall()
 
-    conn.close()
-    return render_template("index.html", assets=assets)
+    # Get bookings
+    cur.execute("SELECT resource_tag, start_time, end_time FROM bookings")
+    bookings = cur.fetchall()
 
+    # Get employees
+    cur.execute("SELECT name, email FROM employees")
+    employees = cur.fetchall()
+
+    conn.close()
+
+    return render_template(
+        "index.html",
+        assets=assets,
+        bookings=bookings,
+        employees=employees
+    )
 # Add a new asset using a form
 @app.route("/add_asset", methods=["POST"])
 def add_asset():
@@ -119,7 +153,25 @@ def book():
     conn.close()
 
     return "Booking created successfully!"
+@app.route("/add_employee", methods=["POST"])
+def add_employee():
+    name = request.form["name"]
+    email = request.form["email"]
 
+    conn = sqlite3.connect("assetflow.db")
+    cur = conn.cursor()
+
+    try:
+        cur.execute(
+            "INSERT INTO employees(name, email) VALUES (?, ?)",
+            (name, email)
+        )
+        conn.commit()
+    except sqlite3.IntegrityError:
+        pass
+
+    conn.close()
+    return redirect("/")
 if __name__ == "__main__":
     init_db()
     app.run(debug=True)
