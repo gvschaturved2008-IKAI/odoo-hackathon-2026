@@ -140,6 +140,21 @@ h3 {
     border-radius: 10px;
     margin-top: 20px;
 }
+.booking-form {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.booking-form label {
+    font-weight: bold;
+    margin-top: 8px;
+}
+
+.booking-form input {
+    width: 100%;
+    box-sizing: border-box;
+}
     </style>
 
 </head>
@@ -207,17 +222,20 @@ h3 {
 
     <h2>Book a Resource</h2>
 
-    <form action="/book" method="post">
-    <input type="text" name="resource" placeholder="Resource Tag" required>
+<form action="/book" method="post" class="booking-form">
 
-    <label>Start:</label>
-    <input type="datetime-local" name="start" required>
+    <label for="resource">Resource Tag</label>
+    <input id="resource" type="text" name="resource" placeholder="Resource Tag" required>
 
-    <label>End:</label>
-    <input type="datetime-local" name="end" required>
+    <label for="start">Start Time</label>
+    <input id="start" type="datetime-local" name="start" required>
+
+    <label for="end">End Time</label>
+    <input id="end" type="datetime-local" name="end" required>
 
     <button type="submit">Book</button>
-    </form>
+
+</form>
     </div>
 
 <div class="section">
@@ -286,24 +304,64 @@ h3 {
             <th>Action</th>
         </tr>
 
-        {% for asset in assets %}
-        <tr>
-            <td>{{ asset[0] }}</td>
-            <td>{{ asset[1] }}</td>
-            <td>{{ asset[2] }}</td>
-<td>
+{% for asset in assets %}
+<tr>
+    <td>{{ asset[0] }}</td>
+    <td>{{ asset[1] }}</td>
+    <td>{{ asset[2] }}</td>
+
+    <td>
+
     {% if asset[2] == "Available" %}
+
         {% if employees %}
-            <a href="/allocate/{{ asset[0] }}/{{ employees[0][1] }}">
-                Allocate to {{ employees[0][0] }}
-            </a>
+
+        <form action="/allocate" method="post" style="margin:0;padding:0;background:none;">
+
+            <input type="hidden" name="tag" value="{{ asset[0] }}">
+
+            <select name="email">
+                {% for employee in employees %}
+                    <option value="{{ employee[1] }}">
+                        {{ employee[0] }}
+                    </option>
+                {% endfor %}
+            </select>
+
+            <button type="submit">Allocate</button>
+
+        </form>
+
         {% else %}
             Add an employee first
         {% endif %}
+
     {% else %}
+
         <a href="/release/{{ asset[0] }}">Release</a>
+
     {% endif %}
-</td>
+
+    </td>
+
+</tr>
+{% endfor %}
+
+        </select>
+
+        <button type="submit">Allocate</button>
+
+    </form>
+
+    {% else %}
+        Add an employee first
+    {% endif %}
+
+{% else %}
+
+    <a href="/release/{{ asset[0] }}">Release</a>
+
+{% endif %}
         </tr>
         {% endfor %}
     </table>

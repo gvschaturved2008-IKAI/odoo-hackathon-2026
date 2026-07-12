@@ -228,8 +228,11 @@ def add_asset():
     add_notification(f"Asset {tag} registered")
     return redirect("/")
 # Allocate an asset
-@app.route("/allocate/<tag>/<email>")
-def allocate(tag, email):
+@app.route("/allocate", methods=["POST"])
+def allocate():
+
+    tag = request.form["tag"]
+    email = request.form["email"]
     conn = sqlite3.connect("assetflow.db")
     cur = conn.cursor()
 
