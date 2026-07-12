@@ -2,27 +2,198 @@
 <html>
 <head>
     <title>AssetFlow</title>
+
+    <style>
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f6f8;
+            margin: 30px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #1f2937;
+        }
+
+        h2 {
+            color: #374151;
+            margin-top: 35px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            margin-top: 10px;
+        }
+
+        th {
+            background-color: #2563eb;
+            color: white;
+            padding: 12px;
+        }
+
+        td {
+            padding: 10px;
+            border: 1px solid #ddd;
+            text-align: center;
+        }
+
+        form {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 10px;
+        }
+
+        input, select {
+            padding: 8px;
+            margin: 5px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        button {
+            background-color: #2563eb;
+            color: white;
+            border: none;
+            padding: 9px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #1d4ed8;
+        }
+
+
+        /* Dashboard cards */
+
+        .dashboard {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .card {
+            background: white;
+            padding: 20px;
+            width: 160px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .card h3 {
+            margin: 0;
+            color: #374151;
+        }
+
+        .card p {
+            font-size: 30px;
+            font-weight: bold;
+            margin: 10px;
+        }
+        .section {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    margin-top: 20px;
+}
+
+tr:hover {
+    background-color: #f1f5f9;
+}
+
+table {
+    border-radius: 10px;
+    overflow: hidden;
+}
+.header {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.header p {
+    color: #6b7280;
+    margin: 0;
+}
+h3 {
+    color: #4b5563;
+    margin-top: 25px;
+}
+.activity-table td {
+    text-align: left;
+}
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 20px;
+}
+
+.section {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    margin-top: 20px;
+}
+    </style>
+
 </head>
 <body>
-    <h1>AssetFlow</h1>
-    <h2>Dashboard</h2>
+<div class="header">
 
-<table border="1" cellpadding="10">
-    <tr>
-        <th>Total Assets</th>
-        <th>Available</th>
-        <th>Allocated</th>
-        <th>Employees</th>
-        <th>Bookings</th>
-    </tr>
-    <tr>
-        <td>{{ total_assets }}</td>
-        <td>{{ available_assets }}</td>
-        <td>{{ allocated_assets }}</td>
-        <td>{{ total_employees }}</td>
-        <td>{{ total_bookings }}</td>
-    </tr>
-</table>
+    <h1>AssetFlow</h1>
+    <p>Smart Asset Management System</p>
+
+    <p>
+    Logged in as <b>{{ session['user'] }}</b>
+    <span style="background:#2563eb;color:white;padding:4px 8px;border-radius:5px;">
+        {{ session['role'] }}
+    </span>
+    </p>
+
+    <a href="/logout">Logout</a>
+
+</div>
+
+<h2>Dashboard</h2>
+
+<div class="dashboard">
+
+    <div class="card">
+        <h3>Total Assets</h3>
+        <p>{{ total_assets }}</p>
+    </div>
+
+    <div class="card">
+        <h3>Available</h3>
+        <p>{{ available_assets }}</p>
+    </div>
+
+    <div class="card">
+        <h3>Allocated</h3>
+        <p>{{ allocated_assets }}</p>
+    </div>
+
+    <div class="card">
+        <h3>Employees</h3>
+        <p>{{ total_employees }}</p>
+    </div>
+
+    <div class="card">
+        <h3>Bookings</h3>
+        <p>{{ total_bookings }}</p>
+    </div>
+
+</div>
+    <h2>Operations</h2>
+    <div class="form-grid">
+
+    <div class="section">
 
     <h2>Add Asset</h2>
     <form action="/add_asset" method="post">
@@ -30,6 +201,10 @@
         <input type="text" name="name" placeholder="Asset Name" required>
         <button type="submit">Add Asset</button>
     </form>
+    </div>
+
+    <div class="section">
+
     <h2>Book a Resource</h2>
 
     <form action="/book" method="post">
@@ -42,7 +217,11 @@
     <input type="datetime-local" name="end" required>
 
     <button type="submit">Book</button>
-</form>
+    </form>
+    </div>
+
+<div class="section">
+
 <h2>Add Employee</h2>
 
 <form action="/add_employee" method="post">
@@ -50,9 +229,26 @@
     <input type="email" name="email" placeholder="Employee Email" required>
     <button type="submit">Add Employee</button>
 </form>
-<h2>Maintenance Requests</h2>
+</div>
+</div>
 
-<table border="1" cellpadding="5">
+<h2>Maintenance & Audits</h2>
+
+
+<h3>Raise Maintenance Request</h3>
+
+<div class="section">
+<form action="/raise_maintenance" method="post">
+    <input type="text" name="asset_tag" placeholder="Asset Tag" required>
+    <input type="text" name="issue" placeholder="Describe the issue" required>
+    <button type="submit">Raise Request</button>
+</form>
+</div>
+
+
+<h3>Maintenance Requests</h3>
+<div class="section">
+<table>
     <tr>
         <th>Asset</th>
         <th>Issue</th>
@@ -67,9 +263,22 @@
     </tr>
     {% endfor %}
 </table>
-    <h2>Assets</h2>
 
-    <table border="1" cellpadding="5">
+</div>
+    
+    <h2>Asset Overview</h2>
+        <div class="section">
+    <form method="get" action="/">
+        <input type="text"
+            name="search"
+            placeholder="Search by tag or name"
+            value="{{ search }}">
+        <button type="submit">Search</button>
+    </form>
+    </div>
+    <h3>Assets</h3>
+
+    <table>
         <tr>
             <th>Tag</th>
             <th>Name</th>
@@ -82,7 +291,7 @@
             <td>{{ asset[0] }}</td>
             <td>{{ asset[1] }}</td>
             <td>{{ asset[2] }}</td>
-              <td>
+<td>
     {% if asset[2] == "Available" %}
         {% if employees %}
             <a href="/allocate/{{ asset[0] }}/{{ employees[0][1] }}">
@@ -92,15 +301,15 @@
             Add an employee first
         {% endif %}
     {% else %}
-        Already Allocated
+        <a href="/release/{{ asset[0] }}">Release</a>
     {% endif %}
 </td>
         </tr>
         {% endfor %}
     </table>
-    <h2>Bookings</h2>
+    <h3>Resource Bookings</h3>
 
-<table border="1" cellpadding="5">
+<table>
     <tr>
         <th>Resource</th>
         <th>Start</th>
@@ -115,9 +324,9 @@
     </tr>
     {% endfor %}
 </table>
-<h2>Employees</h2>
+<h3>Employees</h3>
 
-<table border="1" cellpadding="5">
+<table>
     <tr>
         <th>Name</th>
         <th>Email</th>
@@ -131,5 +340,111 @@
     {% endfor %}
 </table>
 
+<div class="section">
+
+<h3>Audit Cycle</h3>
+
+<form action="/audit" method="post">
+    <input type="text" name="asset_tag" placeholder="Asset Tag" required>
+    <input type="text" name="checked_by" placeholder="Checked By" required>
+
+    <select name="condition">
+        <option value="Good">Good</option>
+        <option value="Damaged">Damaged</option>
+        <option value="Needs Repair">Needs Repair</option>
+    </select>
+
+    <button type="submit">Submit Audit</button>
+</form>
+</div>
+
+<h3>Audit Records</h3>
+
+<div class="section">
+<table>
+<tr>
+    <th>Asset</th>
+    <th>Checked By</th>
+    <th>Condition</th>
+    <th>Date</th>
+</tr>
+
+{% for audit in audits %}
+<tr>
+    <td>{{ audit[0] }}</td>
+    <td>{{ audit[1] }}</td>
+    <td>{{ audit[2] }}</td>
+    <td>{{ audit[3] }}</td>
+</tr>
+{% endfor %}
+
+</table>
+</div>
+
+<h2>Reports</h2>
+
+<table>
+<tr>
+    <th>Total Maintenance</th>
+    <th>Total Audits</th>
+</tr>
+
+<tr>
+    <td>{{ total_maintenance }}</td>
+    <td>{{ total_audits }}</td>
+</tr>
+
+</table>
+<h2>Administration</h2>
+
+<div class="form-grid">
+
+    <div class="section">
+
+        <h3>User Roles</h3>
+
+        <form action="/add_user" method="post">
+
+            <input type="text" name="name" placeholder="User Name" required>
+
+            <input type="email" name="email" placeholder="User Email" required>
+
+            <select name="role">
+                <option value="Admin">Admin</option>
+                <option value="Manager">Manager</option>
+                <option value="Employee">Employee</option>
+            </select>
+
+            <button type="submit">Add User</button>
+
+        </form>
+
+    </div>
+
+</div>
+   <h2>Activity Feed</h2>
+
+<table class="activity-table">
+<tr>
+    <th>Message</th>
+</tr>
+
+{% if notifications %}
+    {% for n in notifications %}
+    <tr>
+        <td>{{ n[0] }}</td>
+    </tr>
+    {% endfor %}
+{% else %}
+    <tr>
+        <td>No notifications yet</td>
+    </tr>
+{% endif %}
+
+</table>
+<hr>
+<p style="text-align:center;color:#6b7280;">
+    AssetFlow © 2026 | Smart Asset Management System
+</p>
 </body>
 </html>

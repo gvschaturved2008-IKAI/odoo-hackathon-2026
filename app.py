@@ -1,8 +1,10 @@
-from flask import Flask, render_template, request, redirect
+from flask import Flask, render_template, request, redirect, session
 from datetime import datetime
 import sqlite3
 
 app = Flask(__name__)
+
+app.secret_key = "assetflow-secret"
 
 def init_db():
     conn = sqlite3.connect("assetflow.db")
@@ -53,19 +55,90 @@ def init_db():
         status TEXT
     )
     """)
+    # Audit cycles table
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS audits (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        asset_tag TEXT,
+        checked_by TEXT,
+        condition TEXT,
+        date TEXT
+    )
+    """)
+    # Notifications table
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS notifications (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        message TEXT
+    )
+    """)
+    # Users and roles table
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT,
+        email TEXT UNIQUE,
+        role TEXT
+    )
+    """)
     conn.commit()
     conn.close()
+
+def add_notification(message):
+    conn = sqlite3.connect("assetflow.db")
+    cur = conn.cursor()
+    cur.execute(
+        "INSERT INTO notifications(message) VALUES (?)",
+        (message,)
+    )
+    conn.commit()
+    conn.close()
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        name = request.form["name"]
+        role = request.form["role"]
+
+        session["user"] = name
+        session["role"] = role
+
+        add_notification(f"{name} logged in as {role}")
+
+        return redirect("/")
+
+    return render_template("login.html")
+
+
+@app.route("/logout")
+def logout():
+    user = session.get("user", "User")
+
+    session.clear()
+
+    add_notification(f"{user} logged out")
+
+    return redirect("/login")
 
 # Home page - show all assets
 @app.route("/")
 def home():
+    if "user" not in session:
+        return redirect("/login")
     conn = sqlite3.connect("assetflow.db")
     cur = conn.cursor()
 
     # Assets
-    cur.execute("SELECT tag, name, status FROM assets")
-    assets = cur.fetchall()
+    search = request.args.get("search", "")
 
+    if search:
+        cur.execute(
+            "SELECT tag, name, status FROM assets WHERE tag LIKE ? OR name LIKE ?",
+            (f"%{search}%", f"%{search}%")
+        )
+    else:
+        cur.execute("SELECT tag, name, status FROM assets")
+
+    assets = cur.fetchall()
     # Bookings
     cur.execute("SELECT resource_tag, start_time, end_time FROM bookings")
     bookings = cur.fetchall()
@@ -89,9 +162,23 @@ def home():
 
     cur.execute("SELECT COUNT(*) FROM bookings")
     total_bookings = cur.fetchone()[0]
-    
+
+    cur.execute("SELECT COUNT(*) FROM maintenance_requests")
+    total_maintenance = cur.fetchone()[0]
+
+    cur.execute("SELECT COUNT(*) FROM audits")
+    total_audits = cur.fetchone()[0]
+
     cur.execute("SELECT asset_tag, issue, status FROM maintenance_requests")
     maintenance_requests = cur.fetchall()
+
+    cur.execute("SELECT message FROM notifications ORDER BY id DESC LIMIT 10")
+    notifications = cur.fetchall()
+
+    cur.execute("SELECT asset_tag, checked_by, condition, date FROM audits ORDER BY id DESC")
+    audits = cur.fetchall()
+
+
     conn.close()
 
     return render_template(
@@ -105,6 +192,11 @@ def home():
         total_employees=total_employees,
         total_bookings=total_bookings,
         maintenance_requests=maintenance_requests,
+        notifications=notifications,
+        audits=audits,
+        total_maintenance=total_maintenance,
+        total_audits=total_audits,
+        search=search,
     )
 # Add a new asset using a form
 @app.route("/add_asset", methods=["POST"])
@@ -132,7 +224,8 @@ def add_asset():
 
     conn.commit()
     conn.close()
-
+    
+    add_notification(f"Asset {tag} registered")
     return redirect("/")
 # Allocate an asset
 @app.route("/allocate/<tag>/<email>")
@@ -164,10 +257,35 @@ def allocate(tag, email):
         (tag,)
     )
 
+    # First save and close this connection
     conn.commit()
     conn.close()
 
+    # Then create the notification using a new connection
+    add_notification(f"Asset {tag} allocated to {email}")
+
     return redirect("/")
+@app.route("/release/<tag>")
+def release(tag):
+    conn = sqlite3.connect("assetflow.db")
+    cur = conn.cursor()
+
+    # Remove allocation record
+    cur.execute("DELETE FROM allocations WHERE asset_tag = ?", (tag,))
+
+    # Mark asset as available
+    cur.execute(
+        "UPDATE assets SET status = 'Available' WHERE tag = ?",
+        (tag,)
+    )
+
+    conn.commit()
+    conn.close()
+
+    add_notification(f"Asset {tag} released")
+
+    return redirect("/")
+
 @app.route("/book", methods=["POST"])
 def book():
     resource = request.form["resource"]
@@ -203,8 +321,12 @@ def book():
         (resource, start, end)
     )
 
+    # First commit and close this connection
     conn.commit()
     conn.close()
+
+    # Then create the notification
+    add_notification(f"Resource {resource} booked")
 
     return "Booking created successfully!"
 @app.route("/add_employee", methods=["POST"])
@@ -241,6 +363,48 @@ def raise_maintenance():
 
     conn.commit()
     conn.close()
+
+    add_notification(f"Maintenance request raised for {asset_tag}")
+
+    return redirect("/")
+@app.route("/add_user", methods=["POST"])
+def add_user():
+    name = request.form["name"]
+    email = request.form["email"]
+    role = request.form["role"]
+
+    conn = sqlite3.connect("assetflow.db")
+    cur = conn.cursor()
+
+    cur.execute(
+        "INSERT INTO users(name, email, role) VALUES (?, ?, ?)",
+        (name, email, role)
+    )
+
+    conn.commit()
+    conn.close()
+
+    add_notification(f"User {name} added as {role}")
+
+    return redirect("/")
+@app.route("/audit", methods=["POST"])
+def audit():
+    asset_tag = request.form["asset_tag"]
+    checked_by = request.form["checked_by"]
+    condition = request.form["condition"]
+
+    conn = sqlite3.connect("assetflow.db")
+    cur = conn.cursor()
+
+    cur.execute(
+        "INSERT INTO audits(asset_tag, checked_by, condition, date) VALUES (?, ?, ?, ?)",
+        (asset_tag, checked_by, condition, datetime.now().strftime("%Y-%m-%d %H:%M"))
+    )
+
+    conn.commit()
+    conn.close()
+
+    add_notification(f"Audit completed for {asset_tag}")
 
     return redirect("/")
 if __name__ == "__main__":
