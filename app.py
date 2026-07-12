@@ -36,7 +36,14 @@ def init_db():
         email TEXT UNIQUE
     )
     """)
-
+    # Allocations table
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS allocations (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        asset_tag TEXT,
+        employee_email TEXT
+    )
+    """)
     conn.commit()
     conn.close()
 
@@ -46,17 +53,33 @@ def home():
     conn = sqlite3.connect("assetflow.db")
     cur = conn.cursor()
 
-    # Get assets
+    # Assets
     cur.execute("SELECT tag, name, status FROM assets")
     assets = cur.fetchall()
 
-    # Get bookings
+    # Bookings
     cur.execute("SELECT resource_tag, start_time, end_time FROM bookings")
     bookings = cur.fetchall()
 
-    # Get employees
+    # Employees
     cur.execute("SELECT name, email FROM employees")
     employees = cur.fetchall()
+
+    # Dashboard stats
+    cur.execute("SELECT COUNT(*) FROM assets")
+    total_assets = cur.fetchone()[0]
+
+    cur.execute("SELECT COUNT(*) FROM assets WHERE status = 'Available'")
+    available_assets = cur.fetchone()[0]
+
+    cur.execute("SELECT COUNT(*) FROM assets WHERE status = 'Allocated'")
+    allocated_assets = cur.fetchone()[0]
+
+    cur.execute("SELECT COUNT(*) FROM employees")
+    total_employees = cur.fetchone()[0]
+
+    cur.execute("SELECT COUNT(*) FROM bookings")
+    total_bookings = cur.fetchone()[0]
 
     conn.close()
 
@@ -64,7 +87,12 @@ def home():
         "index.html",
         assets=assets,
         bookings=bookings,
-        employees=employees
+        employees=employees,
+        total_assets=total_assets,
+        available_assets=available_assets,
+        allocated_assets=allocated_assets,
+        total_employees=total_employees,
+        total_bookings=total_bookings
     )
 # Add a new asset using a form
 @app.route("/add_asset", methods=["POST"])
@@ -75,24 +103,32 @@ def add_asset():
     conn = sqlite3.connect("assetflow.db")
     cur = conn.cursor()
 
-    try:
+    # If the asset already exists, make it Available again
+    cur.execute("SELECT id FROM assets WHERE tag = ?", (tag,))
+    existing = cur.fetchone()
+
+    if existing:
+        cur.execute(
+            "UPDATE assets SET name = ?, status = 'Available' WHERE tag = ?",
+            (name, tag)
+        )
+    else:
         cur.execute(
             "INSERT INTO assets(tag, name, status) VALUES (?, ?, ?)",
             (tag, name, "Available")
         )
-        conn.commit()
-    except sqlite3.IntegrityError:
-        pass
 
+    conn.commit()
     conn.close()
-    return redirect("/")
 
+    return redirect("/")
 # Allocate an asset
-@app.route("/allocate/<tag>")
-def allocate(tag):
+@app.route("/allocate/<tag>/<email>")
+def allocate(tag, email):
     conn = sqlite3.connect("assetflow.db")
     cur = conn.cursor()
 
+    # Check asset status
     cur.execute("SELECT status FROM assets WHERE tag = ?", (tag,))
     row = cur.fetchone()
 
@@ -104,6 +140,13 @@ def allocate(tag):
         conn.close()
         return "Asset already allocated"
 
+    # Record allocation
+    cur.execute(
+        "INSERT INTO allocations(asset_tag, employee_email) VALUES (?, ?)",
+        (tag, email)
+    )
+
+    # Update asset status
     cur.execute(
         "UPDATE assets SET status = 'Allocated' WHERE tag = ?",
         (tag,)
@@ -113,7 +156,6 @@ def allocate(tag):
     conn.close()
 
     return redirect("/")
-
 @app.route("/book", methods=["POST"])
 def book():
     resource = request.form["resource"]
