@@ -44,6 +44,15 @@ def init_db():
         employee_email TEXT
     )
     """)
+    # Maintenance requests table
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS maintenance_requests (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        asset_tag TEXT,
+        issue TEXT,
+        status TEXT
+    )
+    """)
     conn.commit()
     conn.close()
 
@@ -80,7 +89,9 @@ def home():
 
     cur.execute("SELECT COUNT(*) FROM bookings")
     total_bookings = cur.fetchone()[0]
-
+    
+    cur.execute("SELECT asset_tag, issue, status FROM maintenance_requests")
+    maintenance_requests = cur.fetchall()
     conn.close()
 
     return render_template(
@@ -92,7 +103,8 @@ def home():
         available_assets=available_assets,
         allocated_assets=allocated_assets,
         total_employees=total_employees,
-        total_bookings=total_bookings
+        total_bookings=total_bookings,
+        maintenance_requests=maintenance_requests,
     )
 # Add a new asset using a form
 @app.route("/add_asset", methods=["POST"])
@@ -213,6 +225,23 @@ def add_employee():
         pass
 
     conn.close()
+    return redirect("/")
+@app.route("/raise_maintenance", methods=["POST"])
+def raise_maintenance():
+    asset_tag = request.form["asset_tag"]
+    issue = request.form["issue"]
+
+    conn = sqlite3.connect("assetflow.db")
+    cur = conn.cursor()
+
+    cur.execute(
+        "INSERT INTO maintenance_requests(asset_tag, issue, status) VALUES (?, ?, ?)",
+        (asset_tag, issue, "Pending")
+    )
+
+    conn.commit()
+    conn.close()
+
     return redirect("/")
 if __name__ == "__main__":
     init_db()

@@ -50,7 +50,23 @@
     <input type="email" name="email" placeholder="Employee Email" required>
     <button type="submit">Add Employee</button>
 </form>
+<h2>Maintenance Requests</h2>
 
+<table border="1" cellpadding="5">
+    <tr>
+        <th>Asset</th>
+        <th>Issue</th>
+        <th>Status</th>
+    </tr>
+
+    {% for req in maintenance_requests %}
+    <tr>
+        <td>{{ req[0] }}</td>
+        <td>{{ req[1] }}</td>
+        <td>{{ req[2] }}</td>
+    </tr>
+    {% endfor %}
+</table>
     <h2>Assets</h2>
 
     <table border="1" cellpadding="5">
@@ -114,5 +130,6 @@
     </tr>
     {% endfor %}
 </table>
+
 </body>
 </html>
